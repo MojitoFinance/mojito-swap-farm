@@ -162,6 +162,7 @@ describe("MojitoLotteryPool", () => {
         const poolAfter = await this.lotteryPool.poolInfo(0);
         expect(poolAfter.pendingAmount).to.be.bignumber.equal(new BN("0"));
         expect(poolAfter.totalInject).to.be.bignumber.equal(pool.pendingAmount);
+        expect(await this.lotteryPool.injectInfo(0, lotteryId)).to.be.bignumber.equal(pool.pendingAmount);
     });
 
     it("injectPool(1, true)", async () => {
@@ -185,6 +186,7 @@ describe("MojitoLotteryPool", () => {
         const poolAfter = await this.lotteryPool.poolInfo(1);
         expect(poolAfter.pendingAmount).to.be.bignumber.equal(new BN("0"));
         expect(poolAfter.totalInject).to.be.bignumber.equal(pool.pendingAmount.add(mojitoReward));
+        expect(await this.lotteryPool.injectInfo(1, lotteryId)).to.be.bignumber.equal(pool.pendingAmount.add(mojitoReward));
     });
 
     it("advanceBlock(+20)", async () => {

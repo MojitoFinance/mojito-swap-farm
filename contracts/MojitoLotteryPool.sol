@@ -28,7 +28,7 @@ contract MojitoLotteryPool is Schedule, ReentrancyGuard {
     }
 
     PoolInfo[] public poolInfo;
-    mapping(uint256 => mapping(uint256 => uint256)) injectInfo;
+    mapping(uint256 => mapping(uint256 => uint256)) public injectInfo;
 
     event AdminTokenRecovery(address token, uint256 amount);
     event OperatorUpdate(address indexed from, address to);
