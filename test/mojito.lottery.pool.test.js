@@ -22,8 +22,8 @@ const MojitoLotteryPool = contract.fromArtifact("MojitoLotteryPool");
 const MojitoLotteryMock = contract.fromArtifact("MojitoLotteryMock");
 
 describe("MojitoLotteryPool", () => {
-    const [caller, operator, other] = accounts;
-    const MojitoPerBlock            = new BN("3");
+    const [caller, operator, injector, other] = accounts;
+    const MojitoPerBlock                      = new BN("3");
     before(async () => {
         this.mojito = await MojitoToken.new({from: caller});
         this.erc20  = await MojitoToken.new({from: caller});
@@ -39,9 +39,11 @@ describe("MojitoLotteryPool", () => {
 
         await this.erc20.mint(other, new BN("100"), {from: caller});
         await this.mojito.mint(operator, new BN("100"), {from: caller});
+        await this.mojito.mint(injector, new BN("100"), {from: caller});
         await this.mojito.mint(other, new BN("100"), {from: caller});
 
         await this.mojito.approve(this.lotteryPool.address, constants.MAX_UINT256, {from: operator});
+        await this.mojito.approve(this.lotteryPool.address, constants.MAX_UINT256, {from: injector});
         await this.mojito.approve(this.lotteryPool.address, constants.MAX_UINT256, {from: other});
     });
 
@@ -50,7 +52,15 @@ describe("MojitoLotteryPool", () => {
     });
 
     it("setOperator(zero address)", async () => {
-        await expectRevert(this.lotteryPool.setOperator(constants.ZERO_ADDRESS, {from: caller}), "zero address");
+        await expectRevert(this.lotteryPool.setOperator(constants.ZERO_ADDRESS, {from: caller}), "setOperator:zero address");
+    });
+
+    it("setInjector(not owner)", async () => {
+        await expectRevert(this.lotteryPool.setInjector(injector, {from: other}), "Ownable: caller is not the owner");
+    });
+
+    it("setInjector(zero address)", async () => {
+        await expectRevert(this.lotteryPool.setInjector(constants.ZERO_ADDRESS, {from: caller}), "setInjector:zero address");
     });
 
     it("setOperator()", async () => {
@@ -60,6 +70,17 @@ describe("MojitoLotteryPool", () => {
             {
                 from: constants.ZERO_ADDRESS,
                 to:   operator,
+            },
+        );
+    });
+
+    it("setInjector()", async () => {
+        expectEvent(
+            await this.lotteryPool.setInjector(injector, {from: caller}),
+            "InjectorUpdate",
+            {
+                from: constants.ZERO_ADDRESS,
+                to:   injector,
             },
         );
     });
@@ -121,11 +142,18 @@ describe("MojitoLotteryPool", () => {
         expect(pool0.pendingAmount.add(pool1.pendingAmount)).to.be.bignumber.equal(balance);
     });
 
+    it("injectPending(not injector)", async () => {
+        await expectRevert(
+            this.lotteryPool.injectPending(0, new BN("10"), {from: other}),
+            "not injector",
+        );
+    });
+
     it("injectPending()", async () => {
         const poolBefore    = await this.lotteryPool.poolInfo(0);
         const balanceBefore = await this.mojito.balanceOf(this.lotteryPool.address);
         expectEvent(
-            await this.lotteryPool.injectPending(0, new BN("10"), {from: other}),
+            await this.lotteryPool.injectPending(0, new BN("10"), {from: injector}),
             "InjectPending",
             {
                 pid:    new BN("0"),

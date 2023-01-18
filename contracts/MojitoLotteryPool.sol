@@ -18,6 +18,7 @@ contract MojitoLotteryPool is Schedule, ReentrancyGuard {
     uint256 public totalAllocPoint = 0;
 
     address public operator;
+    address public injector;
 
     struct PoolInfo {
         IMojitoSwapLottery lottery;
@@ -32,6 +33,7 @@ contract MojitoLotteryPool is Schedule, ReentrancyGuard {
 
     event AdminTokenRecovery(address token, uint256 amount);
     event OperatorUpdate(address indexed from, address to);
+    event InjectorUpdate(address indexed from, address to);
     event InjectPool(uint256 indexed pid, uint256 lotteryId, uint256 amount);
     event InjectPending(uint256 indexed pid, uint256 amount);
 
@@ -49,11 +51,23 @@ contract MojitoLotteryPool is Schedule, ReentrancyGuard {
         _;
     }
 
+    modifier onlyInjector() {
+        require(_msgSender() == injector, "not injector");
+        _;
+    }
+
     function setOperator(address _operator) public onlyOwner {
         require(_operator != address(0), "setOperator:zero address");
         address pre = operator;
         operator = _operator;
         emit OperatorUpdate(pre, operator);
+    }
+
+    function setInjector(address _injector) public onlyOwner {
+        require(_injector != address(0), "setInjector:zero address");
+        address pre = injector;
+        injector = _injector;
+        emit InjectorUpdate(pre, injector);
     }
 
     function setMojitoPerBlock(uint256 _mojitoPerBlock) public virtual override onlyOwner {
@@ -107,7 +121,7 @@ contract MojitoLotteryPool is Schedule, ReentrancyGuard {
         pool.lastRewardBlock = block.number;
     }
 
-    function injectPending(uint256 _pid, uint256 _amount) public {
+    function injectPending(uint256 _pid, uint256 _amount) public onlyInjector {
         PoolInfo storage pool = poolInfo[_pid];
         mojito.transferFrom(_msgSender(), address(this), _amount);
         pool.pendingAmount = pool.pendingAmount.add(_amount);
